@@ -33,18 +33,21 @@ const Home = ({
   romanceMovies,
   documentaries,
 }: Props) => {
-
   console.log(netflixOriginals);
 
-  const { loading } = useAuth()
+  const { loading } = useAuth();
   // state management -> Recoiljs
-  const showModal = useRecoilValue(modalState)
+  const showModal = useRecoilValue(modalState);
 
-  if (loading) return null
+  if (loading) return null;
 
   return (
     //  from-gray-900/10 to-[#010511]
-    <div className="relative h-screen bg-gradient-to-b lg:h-[140vh]">
+    <div
+      className={`relative h-screen bg-gradient-to-b lg:h-[140vh] ${
+        showModal && "!h-screen overflow-hidden"
+      }`}
+    >
       <Head>
         <title>Home - Netflix</title>
         <link rel="icon" href="/favicon.ico" />
