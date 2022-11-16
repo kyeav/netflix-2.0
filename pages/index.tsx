@@ -5,9 +5,14 @@ import requests from "../utils/requests";
 import { Movie } from "../typings";
 import Row from "../components/Row";
 import useAuth from "../hooks/useAuth";
-import { modalState } from "../atoms/modalAtom";
+import { modalState, movieState } from "../atoms/modalAtom";
 import { useRecoilValue } from "recoil";
 import Modal from "../components/Modal";
+import Plans from "../components/Plans";
+import { getProducts, Product } from "@stripe/firestore-stripe-payments";
+import payments from "../lib/stripe";
+import useSubscription from "../hooks/useSubscription";
+import useList from "../hooks/useList";
 
 // typescript for intelisense, debugging errors, production, robust code
 
@@ -21,6 +26,7 @@ interface Props {
   horrorMovies: Movie[];
   romanceMovies: Movie[];
   documentaries: Movie[];
+  products: Product[];
 }
 
 const Home = ({
@@ -32,14 +38,23 @@ const Home = ({
   horrorMovies,
   romanceMovies,
   documentaries,
+  products,
 }: Props) => {
   console.log(netflixOriginals);
+  console.log(products);
 
-  const { loading } = useAuth();
+  const { loading, user } = useAuth();
   // state management -> Recoiljs
   const showModal = useRecoilValue(modalState);
+  const subscription = useSubscription(user);
+  const movie = useRecoilValue(movieState);
+  const list = useList(user?.uid);
 
-  if (loading) return null;
+  console.log(subscription);
+
+  if (loading || subscription === null) return null;
+
+  if (!subscription) return <Plans products={products} />;
 
   return (
     //  from-gray-900/10 to-[#010511]
@@ -67,6 +82,7 @@ const Home = ({
           <Row title="Action Thrillers" movies={actionMovies} />
 
           {/* My List component */}
+          {list.length > 0 && <Row title="My List" movies={list} />}
 
           <Row title="Comedies" movies={comedyMovies} />
           <Row title="Scary Movies" movies={horrorMovies} />
@@ -85,6 +101,14 @@ export default Home;
 
 // ssr, no loading required
 export const getServerSideProps = async () => {
+  const products = await getProducts(payments, {
+    // options
+    includePrices: true,
+    activeOnly: true,
+  })
+    .then((res) => res)
+    .catch((error) => console.log(error.message));
+
   const [
     netflixOriginals,
     trendingNow,
@@ -115,6 +139,7 @@ export const getServerSideProps = async () => {
       horrorMovies: horrorMovies.results,
       romanceMovies: romanceMovies.results,
       documentaries: documentaries.results,
+      products,
     },
   };
 };
